@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QuickMath</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.socket.io/4.2.0/socket.io.js"></script>
+</head>
+<body>
+  <div class="container mt-4 mb-2">
+	<div class="row header">
+      <div class="col-auto mt-1 mb-1"><img src="assets/logo.PNG" style="height: 70px"></div>
+      <div class="col d-flex justify-content-end align-items-center">
+        <div class="score-badge mx-2">
+          <span class="pe-1 score-text">Score:</span>&nbsp;<span class="score-text" id="scoreText">0</span>
+        </div>
+        <span class=" badgee" id="myname"></span><div class="dot mt-3"></div>
+      </div>
+  </div>
+
+  <div id="loadingLineContainer">
+    <div id="myBar"></div>
+  </div>
+
+	<div class="row px-0 mt-3 box">
+    <div class="col-3">
+      <b class="">Live Contestants</b>
+       <div id="userList"></div>
+    </div>
+    <div class="col-9">
+      <h2>Question</h2>
+      <div class="container mt-5">
+        <div class="row">
+          <div class="col-md-6 offset-md-3">
+            <div class="chart-background">
+              <p class="crystal-background my-2" id="questionField"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+        <div class="row mb-1 mt-5 align-items-center">
+          <div class="col"></div>
+          <div class="col"> <input type="text" id="answer" class="form-control col-12" placeholder="Answer" oninput="MyAnswer(this)" ></div>
+          <div class="col"></div>
+        </div>
+
+        <div class="row mt-5 mx-5" id="winnerContainer">
+          <span class="golden-star">&#9733;</span><span id="Winner" class="mx-2">&nbsp;</span><span>win</span>
+        </div>
+
+        <div class="mt-4">
+          <p id="timeleft"></p>
+        </div>
+
+      
+        
+
+
+      <div class="form-group" style="display: none;">
+        <label for="receiverId">Receiver ID:</label>
+        <input type="text" id="receiverId" class="form-control" placeholder="Receiver ID">
+      </div>
+
+      <div id="userIdContainer" class="mt-4" style="display: none;">
+        <strong>Your ID:</strong> <span id="userId"></span>
+      </div>
+
+    </div>
+  </div>
+    
+  <script>
+
+    const socket = io();
+    const messageGroups = {};
+    let currentDisplayedUser = null;
+    idsWithNames={};
+	   //
+	  var namez = prompt("Enter Username");
+
+    // Generate the user list
+    function generateUserList(userIds) {
+      const userList = document.getElementById('userList');
+
+      // Clear the user list
+      //userList.innerHTML = '';
+
+      // Create a list item for each user
+      for (let userId of userIds) {
+          if (!document.getElementById(userId)){
+          const listItem = document.createElement('div');
+          listItem.setAttribute("id",userId);
+          listItem.setAttribute("onclick",`setReceiverID(this)`)
+          listItem.className = 'user-list-item user align-items-center d-flex';
+          listItem.textContent = "";
+
+          // Add a click event listener to display the chat for the user
+          listItem.addEventListener('click', () => {
+            displayUserChat(userId);
+          });
+
+          // Append the list item to the user list
+          userList.appendChild(listItem);
+        }
+      }
+    }
+    // Receive name
+    socket.on('receiveName', (nimmm) => {
+      document.getElementById("myname").innerText=nimmm;
+    });
+
+    // Listen for user ID
+    socket.on('userId', (userId) => {
+      console.log('User ID received:', userId);
+      const userIdElement = document.getElementById('userId');
+      userIdElement.textContent = userId;
+      
+      socket.emit('sendname', namez);
+
+    });
+    // Listen for connected users
+    socket.on('userList', (userIds) => {
+      console.log('Connected users:', userIds);
+      // Generate the user list
+      // userIds = userIds.filter(function(item){ return item != socket.id })
+      generateUserList(userIds);
+    });
+
+    // Listen for connected users' names
+    socket.on('SetNames', function(data){
+      // Generate the user list
+      all_users=document.getElementById("userList").getElementsByClassName('user');  
+      for (let i=0;i<all_users.length;i++){
+        if (!(document.getElementById(all_users[i].id.trim()).innerHTML.trim().length>0)){
+          if (all_users[i].id==socket.id){
+            namezz="You"
+          }
+          else{
+            namezz=data[all_users[i].id];
+          }
+          
+          document.getElementById(all_users[i].id.trim()).innerHTML="<div>&nbsp;"+namezz+"</div><div style='flex-grow: 1; display: flex; justify-content: flex-end;'><div id='score-"+all_users[i].id+"' class='scoree badge'></div></div>";
+          const div=document.createElement("div");
+          div.setAttribute('class',"dot")
+          document.getElementById(all_users[i].id.trim()).prepend(div)
+        }
+      }
+      idsWithNames=data;
+    });
+    socket.on('disconnected', function(id){
+      if (document.getElementById(id)){
+        document.getElementById(id).remove();
+      }
+      if (document.getElementById("receiverId").value==id){
+        document.getElementById("receiverId").value="";
+      
+        
+      }
+    });
+   
+  
+    socket.on('quizQuestion', function(data){
+      document.getElementById("questionField").innerHTML=data;
+      document.getElementById("answer").disabled=false;
+      document.getElementById("answer").value="";
+      //winner remove
+      document.getElementById("Winner").innerText="";
+      document.getElementById("winnerContainer").style.display="none";
+     
+  
+    });
+
+    function MyAnswer(value) {
+      socket.emit('checkmyanswer', {
+        answerr: value.value.trim(),
+        userid: socket.id
+      });
+    }
+ 
+ 
+
+    socket.on('welldone', function(winnerName,userIdzz){
+      if (socket.id!=userIdzz){
+        document.getElementById("Winner").innerText=winnerName;
+      }
+      else{
+        document.getElementById("Winner").innerText="You";
+      }
+      
+      // document.getElementById("timeleft").innerText=""
+      document.getElementById("winnerContainer").style.display="block";
+
+    });
+    
+    socket.on('updateScores', function(score){
+      if (score[socket.id]!=undefined){
+      document.getElementById("scoreText").innerText=score[socket.id];
+      }
+      keys=Object.keys(score)
+      for (let i=0;i<keys.length;i++){
+        contestant=document.getElementById("score-"+keys[i]);
+        if (contestant){
+            contestant.innerText=score[keys[i]];
+        }
+      }
+      //
+      updateListOrder();
+    });
+    
+    socket.on("break",function(data){
+      document.getElementById("answer").disabled=true;
+      document.getElementById("questionField").innerText="Next question in 5 seconds...";
+      update(30);
+    });
+
+    socket.on('remainingSeconds', function(seconds){
+      // document.getElementById("timeleft").innerText=seconds
+      update(seconds)
+
+    });
+
+function updateListOrder(){
+  iDWihScore={}
+  innerHtmll="";
+  childs=document.getElementById("userList").children;
+  for (let i=0;i<childs.length;i++){
+    sc=childs[i].getElementsByClassName("scoree")[0].innerText;
+    if (sc!=""){
+      iDWihScore[childs[i].id]=parseInt(sc);
+    }
+    else{
+      iDWihScore[childs[i].id]=0;
+    }
+  }
+  const keys = Object.keys(iDWihScore);
+  const sortedKeys = keys.sort((a, b) => iDWihScore[b] - iDWihScore[a]);
+  for (let i=0;i<keys.length;i++){
+    innerHtmll+=document.getElementById(keys[i]).outerHTML;
+  }
+  document.getElementById("userList").innerHTML=innerHtmll
+
+}
+
+function update(x) {
+    var elem = document.getElementById("myBar");
+    per=(x/30)*100;
+    if (x<7){
+      elem.style.backgroundColor="red"
+    }
+    else{
+      elem.style.backgroundColor="#007bff" 
+    }
+    elem.style.width = per + "%";
+}
+
+</script>
+
+</div>
+</body>
+</html>
+
+
