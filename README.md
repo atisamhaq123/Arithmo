@@ -1,6 +1,6 @@
 # Arithmo
 
-Arithmo is a web application built using Node.js, Socket.IO, and Express that challenges your math skills in a fast-paced environment. With Arithmo, you can compete against other users in real-time and see who can solve math questions the quickest. 
+Arithmo is a web application built using Node.js, Socket.IO, and Express that challenges your math skills in a fast-paced environment. With Arithmo, you can compete against other users in real-time and see who can solve math questions the quickest..
 
 <img src="https://github.com/atisamhaq123/Arithmo/blob/main/images/im1.PNG">
 <br>
